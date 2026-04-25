@@ -1,7 +1,7 @@
 import Foundation
 
-// .rotor 文件格式（v1）：JSON envelope，payload AES-256-GCM 加密，PBKDF2-SHA256 派生主密钥
-// 以 magic + version 开头，保留未来升级空间（例如切 Argon2id）
+// .rotor file format (v1): JSON envelope; payload encrypted with AES-256-GCM, master key derived via PBKDF2-SHA256
+// Begins with magic + version, leaving room for future upgrades (e.g. switching to Argon2id)
 
 struct BackupEnvelope: Codable {
     let magic: String
@@ -13,11 +13,11 @@ struct BackupEnvelope: Codable {
 }
 
 struct BackupKDF: Codable {
-    let name: String         // "argon2id" (v2) 或 "pbkdf2-sha256" (v1)
+    let name: String         // "argon2id" (v2) or "pbkdf2-sha256" (v1)
     let salt: String         // base64(16 bytes)
-    // pbkdf2-sha256 参数
+    // pbkdf2-sha256 parameters
     let iterations: Int?
-    // argon2id 参数
+    // argon2id parameters
     let opsLimit: Int?
     let memLimit: Int?
 }

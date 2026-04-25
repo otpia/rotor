@@ -27,7 +27,7 @@ enum TwoFASImporter {
     }
 
     private static func toCandidate(_ service: TwoFASService) -> AccountImportService.Candidate? {
-        // 尝试从多处解出字段；旧版本 secret 在 service 级别，新版本在 otp.secret
+        // Resolve fields from multiple locations: older versions had secret at service level, newer ones use otp.secret
         let secret = service.secret ?? service.otp?.secret
         guard let secretBase32 = secret, !secretBase32.isEmpty else { return nil }
 

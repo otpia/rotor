@@ -11,7 +11,7 @@ struct MainView: View {
     @State private var settings = SettingsStore.shared
     @State private var vault = VaultManager.shared
 
-    // 重排模式：用 List + .onMove 提供原生拖拽
+    // Reorder mode: use List + .onMove for native drag and drop
     @State private var reorderMode: Bool = false
 
     private enum FormPresentation: Identifiable {
@@ -72,7 +72,7 @@ struct MainView: View {
         accounts.contains { !$0.group.isEmpty }
     }
 
-    // 重排模式下用扁平排序的全部账户：按 group + sortOrder
+    // In reorder mode, use a flat sorted list of all accounts: by group + sortOrder
     private var flatForReorder: [AccountModel] {
         accounts.sorted { lhs, rhs in
             if lhs.group != rhs.group {
@@ -208,7 +208,7 @@ struct MainView: View {
         }
     }
 
-    // MARK: - Normal mode（查看 TOTP）
+    // MARK: - Normal mode (view TOTP codes)
 
     @ViewBuilder
     private var normalList: some View {
@@ -264,14 +264,14 @@ struct MainView: View {
         }
     }
 
-    // MARK: - Reorder mode（visfitness/Reorderable 提供 GA 风格效果）
+    // MARK: - Reorder mode (visfitness/Reorderable provides the GA-style feel)
 
     @ViewBuilder
     private var reorderList: some View {
-        // ReorderableVStack 基于 DragGesture，立即响应；isDragged 用于 scale-up + 阴影实现"卡片提起"
-        // ScrollView.autoScrollOnEdges() 实现拖到边缘自动滚
+        // ReorderableVStack is built on DragGesture for immediate response; isDragged drives scale-up + shadow for the "card lifted" effect
+        // ScrollView.autoScrollOnEdges() handles auto-scroll when dragging near the edges
         ScrollView(.vertical, showsIndicators: false) {
-            // ReorderableVStack 内部用 VStack(spacing: 0)，把行间距交给每行 padding 提供
+            // ReorderableVStack uses VStack(spacing: 0) internally; row spacing is provided by per-row padding
             ReorderableVStack(flatForReorder, onMove: handleMove) { account, isDragged in
                 ReorderRow(account: account, isDragging: isDragged)
                     .scaleEffect(isDragged ? 1.04 : 1)
@@ -287,11 +287,11 @@ struct MainView: View {
 
     private func handleMove(from source: Int, to destination: Int) {
         var arr = flatForReorder
-        // Reorderable 的 onMove 用 (from, to) 单 index 语义；按 README 推荐 to>from 时 +1
+        // Reorderable's onMove uses single-index (from, to) semantics; per README, add +1 when to > from
         let target = destination > source ? destination + 1 : destination
         arr.move(fromOffsets: IndexSet(integer: source), toOffset: target)
 
-        // 跨 group 时，被拖动项 group 跟随邻居
+        // When crossing groups, the dragged item's group follows its neighbor
         if let movedIdx = arr.firstIndex(where: { $0.id == flatForReorder[source].id }) {
             let moved = arr[movedIdx]
             let neighbor: AccountModel? = movedIdx > 0
@@ -302,7 +302,7 @@ struct MainView: View {
             }
         }
 
-        // 按新顺序在每个 group 内重新编号
+        // Renumber within each group according to the new order
         var perGroupCounter: [String: Int] = [:]
         for acc in arr {
             let n = perGroupCounter[acc.group] ?? 0
@@ -316,7 +316,7 @@ struct MainView: View {
         }
     }
 
-    // MARK: - 数据操作
+    // MARK: - Data operations
 
     private func delete(_ account: AccountModel) {
         context.delete(account)

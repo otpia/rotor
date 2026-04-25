@@ -2,8 +2,8 @@ import AppKit
 import CryptoKit
 import Foundation
 
-// 复制后 60 秒尝试清空剪贴板；清空前对比 changeCount + SHA-256 哈希，
-// 避免覆盖用户在这 60s 内复制的其他内容
+// Try to clear the pasteboard 60 seconds after copy; before clearing, compare changeCount + SHA-256 hash
+// to avoid overwriting anything else the user copied during that 60s window
 @MainActor
 final class ClipboardService {
     static let shared = ClipboardService()

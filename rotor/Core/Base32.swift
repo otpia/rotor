@@ -9,7 +9,7 @@ enum Base32 {
         return map
     }()
 
-    // RFC 4648 Base32 编码；无 `=` 填充（TOTP secret 通常不带 padding）
+    // RFC 4648 Base32 encoding; no `=` padding (TOTP secrets typically come without padding)
     static func encode(_ data: Data) -> String {
         let alphabet = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
         var out = ""
@@ -30,7 +30,7 @@ enum Base32 {
         return out
     }
 
-    // RFC 4648 Base32 解码；容忍大小写、空格、`=` 填充
+    // RFC 4648 Base32 decoding; tolerates case, spaces, and `=` padding
     static func decode(_ input: String) -> Data? {
         var bits = 0
         var value = 0

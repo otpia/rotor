@@ -20,7 +20,7 @@ struct AccountCard: View {
     private var isExpiring: Bool { secondsRemaining <= 5 }
     private var codeColor: Color { isExpiring ? .rotorDanger : .primary }
     private var codeFont: Font { compact ? .rotorCodeCompact : .rotorCode }
-    // 把码按前 3 / 后 3 拆开，避免等宽空格占位过宽
+    // Split the code into first-3 / last-3 to avoid the monospaced space taking up too much room
     private var firstHalf: String {
         code.count >= 3 ? String(code.prefix(3)) : code
     }

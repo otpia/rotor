@@ -2,9 +2,9 @@ import Foundation
 import Observation
 
 enum AccountSortMode: String, CaseIterable, Identifiable {
-    case manual        // 用户自定义顺序（sortOrder）
-    case alphabetical  // 按 issuer 名称 A→Z
-    case recent        // 按添加时间倒序
+    case manual        // User-defined order (sortOrder)
+    case alphabetical  // By issuer name, A→Z
+    case recent        // By creation time, newest first
 
     var id: String { rawValue }
     var displayName: String {
@@ -16,7 +16,7 @@ enum AccountSortMode: String, CaseIterable, Identifiable {
     }
 }
 
-// 应用设置（UserDefaults 持久化）；后续迁移到 SQLite settings 表时改存储层即可
+// App settings persisted via UserDefaults; swap the storage layer when migrating to a SQLite settings table later
 @Observable
 final class SettingsStore {
     @MainActor static let shared = SettingsStore()
@@ -29,7 +29,7 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(popoverPinned, forKey: Keys.popoverPinned) }
     }
 
-    // 屏幕录制 / 截图防护（NSWindow.sharingType = .none）；默认开启
+    // Screen recording / screenshot blocking (NSWindow.sharingType = .none); enabled by default
     var screenCaptureBlocked: Bool {
         didSet { UserDefaults.standard.set(screenCaptureBlocked, forKey: Keys.screenCaptureBlocked) }
     }
@@ -38,7 +38,7 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(sortMode.rawValue, forKey: Keys.sortMode) }
     }
 
-    // 空闲自动锁定（分钟）；0 = 永不锁定
+    // Auto-lock after idle (in minutes); 0 = never lock
     var autoLockMinutes: Int {
         didSet { UserDefaults.standard.set(autoLockMinutes, forKey: Keys.autoLockMinutes) }
     }

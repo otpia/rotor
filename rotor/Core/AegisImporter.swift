@@ -59,7 +59,7 @@ enum AegisImporter {
 
     private struct AegisWrapperEncrypted: Decodable {
         let version: Int
-        let db: String          // 加密模式下 db 是 base64 字符串
+        let db: String          // In encrypted mode `db` is a base64 string
     }
 
     private struct AegisDB: Decodable {

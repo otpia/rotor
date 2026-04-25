@@ -17,7 +17,7 @@ struct RotorApp: App {
         } catch {
             fatalError("无法初始化 SwiftData 容器：\(error)")
         }
-        // Demo seed 延到 vault 解锁后由 MainView onAppear 触发；锁定态下 SecretVault 不可用
+        // Demo seed is deferred to MainView onAppear after the vault unlocks; SecretVault is unavailable while locked
 
         let capturedContainer = container
         StatusItemController.shared.install {
@@ -25,15 +25,15 @@ struct RotorApp: App {
                 .modelContainer(capturedContainer)
         }
 
-        // 启动空闲监听
+        // Start idle monitoring
         IdleLocker.shared.start()
     }
 
-    // 单独保留 popover 的 level 同步逻辑：主窗口已由 WindowAccessor 处理
-    // （popover 自身的 WindowAccessor 在 PopoverView 里直接 apply）
+    // Keep popover-only level sync here; the main window is handled by WindowAccessor
+    // (the popover's own WindowAccessor is applied directly inside PopoverView)
 
     var body: some Scene {
-        // Window（非 WindowGroup）：单实例，关闭后 openWindow(id:) 可重新显示
+        // Window (not WindowGroup): single instance; openWindow(id:) re-shows it after close
         Window("Rotor", id: "main") {
             MainView()
                 .background(
@@ -60,8 +60,8 @@ struct RotorApp: App {
         }
     }
 
-    // 统一给 SwiftUI 管理的 NSWindow 应用 level + sharingType
-    // 截图防护用 .none：整块窗口在录屏/截图中不可见
+    // Apply level + sharingType uniformly to SwiftUI-managed NSWindows
+    // Screen-capture blocking uses .none: the entire window is invisible to screen recording/screenshots
     private func applyWindowPrefs(
         _ window: NSWindow?,
         pinned: Bool = false,
@@ -86,8 +86,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // SwiftUI 在 Scene 生命周期变化（主窗口关闭再开）时会重挂 commands，
-        // 导致 View / Help 等菜单回来，所以监听多个事件幂等地重 trim
+        // SwiftUI re-attaches commands across Scene lifecycle changes (main window close/reopen),
+        // bringing back View / Help menus etc., so we listen to several events and re-trim idempotently
         let nc = NotificationCenter.default
         nc.addObserver(self, selector: #selector(onMenuMightChange),
                        name: NSApplication.didBecomeActiveNotification, object: nil)
@@ -103,7 +103,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func onMenuMightChange() {
-        // 推迟到下一个 runloop tick，等 SwiftUI 挂完再 trim
+        // Defer to the next runloop tick so SwiftUI finishes attaching before we trim
         DispatchQueue.main.async { [weak self] in self?.trimMenuBar() }
     }
 
@@ -112,7 +112,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let appMenuItem = mainMenu.items.first else { return }
         let windowMenuItem = mainMenu.items.first { $0.submenu === NSApp.windowsMenu }
         let keep = [appMenuItem, windowMenuItem].compactMap { $0 }
-        // 已经只剩 keep 不重复 removeItem，避免 didAddItem/remove 循环抖动
+        // Skip removeItem if only the keep set remains, to avoid didAddItem/remove churn loops
         if mainMenu.items.count == keep.count { return }
         for item in Array(mainMenu.items) where !keep.contains(where: { $0 === item }) {
             mainMenu.removeItem(item)

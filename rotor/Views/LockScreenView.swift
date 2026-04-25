@@ -59,7 +59,7 @@ struct LockScreenView: View {
         guard !password.isEmpty, !isUnlocking else { return }
         errorMessage = nil
         isUnlocking = true
-        // Argon2id 派生 ~0.5-1s，放到后台不阻塞主线程
+        // Argon2id derivation takes ~0.5-1s, run off the main thread to keep the UI responsive
         let pw = password
         Task.detached {
             do {

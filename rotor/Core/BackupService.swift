@@ -29,14 +29,14 @@ enum BackupError: LocalizedError {
 
 enum BackupService {
     static let magic = "ROTOR"
-    // v1: PBKDF2-SHA256；v2: Argon2id（OWASP 推荐首选）
+    // v1: PBKDF2-SHA256; v2: Argon2id (OWASP recommended choice)
     static let currentVersion = 2
 
-    // Argon2id 参数：64 MiB / 3 轮；Apple Silicon 上约 0.5–1s，够抗 GPU 暴力破解
+    // Argon2id parameters: 64 MiB / 3 rounds; ~0.5–1s on Apple Silicon, strong against GPU brute force
     static let argon2OpsLimit = 3
     static let argon2MemLimit = 64 * 1024 * 1024
 
-    // 仅用于读取旧 v1 备份；新导出不再用
+    // Used only to read legacy v1 backups; not used for new exports
     static let legacyPbkdf2Iterations = 600_000
 
     // MARK: - Export
@@ -113,7 +113,7 @@ enum BackupService {
         }
 
         guard envelope.magic == magic else { throw BackupError.invalidFile }
-        // 支持读取 v1（PBKDF2）和 v2（Argon2id）
+        // Support reading both v1 (PBKDF2) and v2 (Argon2id)
         guard envelope.version == 1 || envelope.version == 2 else {
             throw BackupError.unsupportedVersion
         }
@@ -191,7 +191,7 @@ enum BackupService {
         let sodium = Sodium()
         let passwordBytes = Array(password.utf8)
         let saltBytes = [UInt8](salt)
-        // libsodium 要求 salt 长度 = crypto_pwhash_SALTBYTES = 16
+        // libsodium requires salt length == crypto_pwhash_SALTBYTES == 16
         guard saltBytes.count == sodium.pwHash.SaltBytes else {
             throw BackupError.kdfFailed
         }

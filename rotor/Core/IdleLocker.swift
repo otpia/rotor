@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 import Observation
 
-// 监听 app 内鼠标/键盘/滚轮事件重置 idle timer；达到阈值时调用 VaultManager.lock()
+// Listen for in-app mouse/keyboard/scroll events to reset the idle timer; calls VaultManager.lock() when the threshold is reached
 @MainActor
 final class IdleLocker {
     static let shared = IdleLocker()
@@ -15,7 +15,7 @@ final class IdleLocker {
 
     func start() {
         stop()
-        // 任何用户输入都算活动
+        // Any user input counts as activity
         monitor = NSEvent.addLocalMonitorForEvents(
             matching: [.mouseMoved, .leftMouseDown, .rightMouseDown, .keyDown, .scrollWheel, .flagsChanged]
         ) { [weak self] event in
@@ -24,7 +24,7 @@ final class IdleLocker {
             }
             return event
         }
-        // 30 秒一次的轮询：精度够用，开销可忽略
+        // Poll every 30 seconds: precision is good enough, overhead is negligible
         let timer = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.checkIdle()

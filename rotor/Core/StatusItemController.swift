@@ -5,8 +5,8 @@ extension Notification.Name {
     static let rotorShowMainWindow = Notification.Name("rotor.showMainWindow")
 }
 
-// 自建状态栏项：左键切换 popover，右键弹 NSMenu
-// SwiftUI 的 MenuBarExtra 不支持区分左右键，且打开被关闭过的 WindowGroup 也不直接
+// Custom status bar item: left click toggles the popover, right click pops an NSMenu
+// SwiftUI's MenuBarExtra can't distinguish left vs right click, and re-opening a closed WindowGroup isn't direct either
 @MainActor
 final class StatusItemController: NSObject {
     static let shared = StatusItemController()
@@ -34,12 +34,12 @@ final class StatusItemController: NSObject {
         popover.contentSize = NSSize(width: 340, height: 520)
         let hosting = NSHostingController(rootView: AnyView(popoverContent()))
         popover.contentViewController = hosting
-        // 预加载 view 触发 SwiftUI body，保证 .onReceive(...)
-        // 在 popover 尚未显示时也能接收「显示主界面」通知
+        // Pre-load the view to trigger the SwiftUI body so .onReceive(...) is wired
+        // and can receive "show main window" notifications even before the popover is shown
         _ = hosting.view
     }
 
-    // 外部更新 popover 窗口 level（跟随置顶设置）
+    // Externally update the popover window level (mirrors the always-on-top setting)
     func applyPopoverLevel(_ level: NSWindow.Level) {
         popover.contentViewController?.view.window?.level = level
     }
@@ -85,7 +85,7 @@ final class StatusItemController: NSObject {
             keyEquivalent: "q"
         ))
 
-        // NSStatusItem 原生：赋 menu 后 performClick 会显示菜单；立即清空避免左键也变 menu
+        // NSStatusItem native behavior: assigning `menu` then performClick shows the menu; clear it immediately so left-click doesn't also turn into a menu
         statusItem?.menu = menu
         anchor.performClick(nil)
         statusItem?.menu = nil
@@ -98,9 +98,9 @@ final class StatusItemController: NSObject {
 
     @objc private func menuShowSettings() {
         NSApp.activate(ignoringOtherApps: true)
-        // 优先走 App 菜单里的 Settings… 菜单项（SwiftUI 的 Settings scene 自动挂了这一项），
-        // 比 sendAction 更可靠：sendAction(nil target) 在没有 key window 时走 responder chain
-        // 可能找不到 showSettingsWindow: 的接收者
+        // Prefer the App menu's Settings… item (SwiftUI's Settings scene installs it automatically);
+        // more reliable than sendAction: sendAction(nil target) walks the responder chain when there's no key window
+        // and may fail to find a receiver for showSettingsWindow:
         if let appMenu = NSApp.mainMenu?.items.first?.submenu {
             for (index, item) in appMenu.items.enumerated() {
                 let title = item.title.lowercased()
@@ -113,7 +113,7 @@ final class StatusItemController: NSObject {
                 }
             }
         }
-        // fallback：SwiftUI / 老版本 AppKit 两个 selector 都试一下
+        // Fallback: try both the SwiftUI and legacy AppKit selectors
         if NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil) { return }
         _ = NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
     }

@@ -1,8 +1,8 @@
 import Foundation
 import SwiftData
 
-// 统一的批量导入管道：.rotor 文件 / QR 二维码 / URI 粘贴 共用
-// 去重键：issuer + label + secret，全部小写/归一化处理
+// Unified batch import pipeline shared by .rotor files / QR images / pasted URIs
+// Dedupe key: issuer + label + secret, all lowercased/normalized
 @MainActor
 enum AccountImportService {
     struct Candidate {
@@ -38,7 +38,7 @@ enum AccountImportService {
     ) async throws -> Outcome {
         progress(Progress(current: 0, total: items.count, stage: "正在扫描已有账户…"))
 
-        // 先解密一次现有账户的 secret，构造去重集合
+        // Decrypt existing accounts' secrets once to build the dedupe set
         let existing = (try? context.fetch(FetchDescriptor<AccountModel>())) ?? []
         var seenKeys = Set<String>()
         for account in existing {
@@ -92,7 +92,7 @@ enum AccountImportService {
                 failed += 1
             }
 
-            // 让出主线程一帧让进度条刷新（没有 yield 时 UI 会冻结到循环结束）
+            // Yield a frame so the progress bar can refresh (without yielding the UI freezes until the loop ends)
             await Task.yield()
         }
 

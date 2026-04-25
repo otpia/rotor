@@ -14,9 +14,9 @@ final class AccountModel {
     var iconTintHex: String
     var sortOrder: Int
     var createdAt: Date
-    // 分组标签（可空），UI 上按 group 分段；空串表示未分组
+    // Optional group tag; UI sections by `group`; empty string means ungrouped
     var group: String = ""
-    // TOTP secret 密文：AES-GCM combined（nonce + ciphertext + tag）；主密钥见 VaultKey
+    // TOTP secret ciphertext: AES-GCM combined (nonce + ciphertext + tag); see VaultKey for the master key
     var ciphertext: Data
 
     init(
@@ -56,7 +56,7 @@ final class AccountModel {
         Color(hex: iconTintHex) ?? .rotorPrimary
     }
 
-    // 解密密文得到 TOTP secret，构造一次性 generator；解密失败或已锁定返回 nil
+    // Decrypt the ciphertext to obtain the TOTP secret and build a one-shot generator; returns nil if decryption fails or the vault is locked
     @MainActor
     func makeGenerator() -> TOTPGenerator? {
         guard !ciphertext.isEmpty,

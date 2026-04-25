@@ -1,6 +1,6 @@
 import SwiftUI
 
-// 倒计时环：progress 表示「剩余时间比例」，1 为满、0 为过期；到期切危险红
+// Countdown ring: `progress` is the remaining-time ratio (1 = full, 0 = expired); switches to danger red when expiring
 struct CountdownRing: View {
     var progress: Double
     var isExpiring: Bool

@@ -1,7 +1,7 @@
 import SwiftData
 import SwiftUI
 
-// 菜单栏 popover：紧凑版，仅显示前 N 条（CLAUDE.md §4.1 规定最多 10 条）
+// Menu bar popover: compact view that shows only the first N entries (CLAUDE.md §4.1 caps it at 10)
 struct PopoverView: View {
     @Query(sort: [SortDescriptor(\AccountModel.sortOrder), SortDescriptor(\AccountModel.createdAt)])
     private var accounts: [AccountModel]
@@ -106,7 +106,7 @@ struct PopoverView: View {
                 window?.sharingType = settings.screenCaptureBlocked ? .none : .readOnly
             }
         )
-        // 状态栏右键菜单「显示主界面」和 Dock 再次点击时会 post 这个通知
+        // The status bar right-click menu's "Show main window" item and a second Dock click both post this notification
         .onReceive(NotificationCenter.default.publisher(for: .rotorShowMainWindow)) { _ in
             showMainWindow()
         }

@@ -3,8 +3,8 @@ import Foundation
 import Observation
 import Sodium
 
-// 保护模式开启时的 vault.master 文件：
-// 用户主密码 Argon2id → 256-bit KEK → AES-256-GCM 加密 32B vault key
+// vault.master file used when protection mode is enabled:
+// user master password → Argon2id → 256-bit KEK → AES-256-GCM encrypts a 32-byte vault key
 struct MasterVaultFile: Codable {
     let version: Int
     let kdf: KDFParams
@@ -48,15 +48,15 @@ final class VaultManager {
     static let shared = VaultManager()
 
     enum State: Equatable {
-        case locked     // 保护模式开启且未解锁
-        case unlocked   // vault key 在内存，可用
+        case locked     // protection enabled and not yet unlocked
+        case unlocked   // vault key resident in memory, ready to use
     }
 
     private(set) var state: State
-    // 当前是否启用保护模式：true = vault.master 形式；false = vault.key 明文形式
+    // Whether protection mode is currently enabled: true = vault.master form; false = plain vault.key form
     private(set) var protectionEnabled: Bool
 
-    // 内存中的 vault key；锁定时 unset，引用被释放
+    // In-memory vault key; cleared (reference released) when locked
     private var unlockedKey: SymmetricKey?
 
     private static let currentVersion = 1
@@ -68,16 +68,16 @@ final class VaultManager {
     private init() {
         let fm = FileManager.default
         if fm.fileExists(atPath: Self.masterURL.path) {
-            // 保护开启：等待解锁
+            // Protection enabled: wait for unlock
             state = .locked
             protectionEnabled = true
         } else if let keyData = try? Data(contentsOf: Self.legacyURL), keyData.count == 32 {
-            // 保护关闭但 vault 已存在：直接 unlock
+            // Protection disabled but vault already exists: unlock directly
             unlockedKey = SymmetricKey(data: keyData)
             state = .unlocked
             protectionEnabled = false
         } else {
-            // 首次启动：自动生成一个随机 vault key，保护默认关闭
+            // First launch: auto-generate a random vault key; protection defaults to off
             let freshKey = SymmetricKey(size: .bits256)
             try? Self.writeLegacyKey(freshKey)
             unlockedKey = freshKey
@@ -86,13 +86,13 @@ final class VaultManager {
         }
     }
 
-    // MARK: - 对外 key 访问
+    // MARK: - External key access
 
     func currentKey() -> SymmetricKey? { unlockedKey }
 
-    // MARK: - 保护模式开关
+    // MARK: - Protection mode toggle
 
-    // 开启保护：要求当前处于 unlocked 状态；设置密码后把 vault.key 改写为 vault.master
+    // Enable protection: requires the current state to be unlocked; rewrites vault.key into vault.master after setting the password
     func enableProtection(password: String, confirm: String) throws {
         guard !protectionEnabled else { throw VaultManagerError.alreadyProtected }
         guard let key = unlockedKey else { throw VaultManagerError.locked }
@@ -100,10 +100,10 @@ final class VaultManager {
         try writeMasterFile(vaultKey: key, password: password)
         try? FileManager.default.removeItem(at: Self.legacyURL)
         protectionEnabled = true
-        // state 保持 unlocked
+        // state stays unlocked
     }
 
-    // 关闭保护：要求输入当前主密码验证通过后，把 vault.master 改写回 vault.key
+    // Disable protection: after verifying the current master password, rewrite vault.master back to vault.key
     func disableProtection(password: String) throws {
         guard protectionEnabled else { throw VaultManagerError.notProtected }
         let key = try readMasterFile(password: password)
@@ -114,7 +114,7 @@ final class VaultManager {
         state = .unlocked
     }
 
-    // MARK: - 锁定 / 解锁（仅保护模式下使用）
+    // MARK: - Lock / unlock (only used when protection is enabled)
 
     func unlock(password: String) throws {
         guard protectionEnabled else { throw VaultManagerError.notProtected }
@@ -124,7 +124,7 @@ final class VaultManager {
     }
 
     func lock() {
-        // 未启用保护则 no-op
+        // No-op when protection is disabled
         guard protectionEnabled else { return }
         unlockedKey = nil
         state = .locked
@@ -139,7 +139,7 @@ final class VaultManager {
         state = .unlocked
     }
 
-    // MARK: - 内部
+    // MARK: - Internal
 
     private func validatePassword(_ password: String, confirm: String) throws {
         guard password.count >= 8 else { throw VaultManagerError.passwordTooShort }
@@ -234,7 +234,7 @@ final class VaultManager {
         return SymmetricKey(data: Data(derived))
     }
 
-    // MARK: - 文件路径 / I/O
+    // MARK: - File paths / I/O
 
     static var applicationSupportURL: URL { VaultKey.applicationSupportURL }
     private static var masterURL: URL { applicationSupportURL.appendingPathComponent(masterFileName) }

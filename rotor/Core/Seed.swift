@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-// 首次启动注入 demo 账户；正式发布时应移除或置于 #if DEBUG
+// Seed demo accounts on first launch; remove or guard with #if DEBUG before release
 enum DemoSeed {
     struct Item {
         let issuer: String

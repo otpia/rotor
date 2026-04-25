@@ -1,7 +1,7 @@
 import SwiftUI
 
-// 重排模式专用行：不显示 TOTP / 倒计时环，去掉 Timer 订阅和动画开销
-// 高度 48pt，一屏能容纳更多账户
+// Row dedicated to reorder mode: no TOTP / countdown ring, drops the Timer subscription and animation cost
+// 48pt tall, fits more accounts on screen
 struct ReorderRow: View {
     let account: AccountModel
     let isDragging: Bool

@@ -1,6 +1,6 @@
 import SwiftUI
 
-// 半透明遮罩 + 居中进度条，覆盖 sheet 内容
+// Translucent backdrop + centered progress bar, layered over sheet content
 struct ProgressOverlay: View {
     let progress: AccountImportService.Progress
 

@@ -1,9 +1,9 @@
 import CryptoKit
 import Foundation
 
-// 主加密密钥（32 字节随机）放在 App Sandbox 容器的 Application Support 下
-// Sandboxed macOS app 的真实路径：~/Library/Containers/<bundle-id>/Data/Library/Application Support/
-// 文件权限 0600；丢失即无法解密（未来可叠加主密码保护本文件）
+// Master encryption key (32 random bytes) stored under the App Sandbox container's Application Support
+// Real path for sandboxed macOS apps: ~/Library/Containers/<bundle-id>/Data/Library/Application Support/
+// File permissions 0600; losing it means data can't be decrypted (the file may be further protected by a master password later)
 enum VaultKey {
     private static let keyFileName = "vault.key"
 

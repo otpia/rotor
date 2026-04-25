@@ -154,7 +154,7 @@ nonisolated struct ReorderableStack<Axis: ContainerAxis, Data: RandomAccessColle
       return
     }
     
-    // Rotor 调速：原 speed=3 / 100fps；改为 60fps + 13pt/tick ≈ 780pt/s，视觉更顺
+    // Rotor speed tweak: original was speed=3 / 100fps; changed to 60fps + 13pt/tick ≈ 780pt/s for smoother visuals
     let bumperSize = 80.0
     let speed = 13.0
 
@@ -180,7 +180,7 @@ nonisolated struct ReorderableStack<Axis: ContainerAxis, Data: RandomAccessColle
               displayOffset -= speed
             }
 
-            // 60fps 即可流畅；100fps 反而让 SwiftUI ScrollPosition 频繁重算 scroll geometry 引起卡顿
+            // 60fps is smooth enough; 100fps makes SwiftUI ScrollPosition recompute scroll geometry too often and stutters
             try? await Task.sleep(nanoseconds: 16_666_666)
           }
         }
@@ -204,7 +204,7 @@ nonisolated struct ReorderableStack<Axis: ContainerAxis, Data: RandomAccessColle
               displayOffset += speed
             }
 
-            // 60fps 即可流畅；100fps 反而让 SwiftUI ScrollPosition 频繁重算 scroll geometry 引起卡顿
+            // 60fps is smooth enough; 100fps makes SwiftUI ScrollPosition recompute scroll geometry too often and stutters
             try? await Task.sleep(nanoseconds: 16_666_666)
           }
         }

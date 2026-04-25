@@ -2,7 +2,7 @@ import AppKit
 import CoreImage
 
 enum QRImageDecoder {
-    // 读取图片中的所有二维码 payload 字符串；失败返回空数组
+    // Read all QR code payload strings from the image; returns an empty array on failure
     static func decode(_ url: URL) -> [String] {
         guard let ciImage = CIImage(contentsOf: url) else { return [] }
         let detector = CIDetector(

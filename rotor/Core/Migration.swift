@@ -1,9 +1,9 @@
 import Foundation
 import Security
 
-// 一次性迁移：keychain 存储 → 文件加密存储
-// 1. 清空 legacy keychain（service = com.liasica.rotor.totp）
-// 2. 删除 SwiftData 旧 store（ciphertext 字段新增，重建表最省事）
+// One-time migration: keychain storage → file-based encrypted storage
+// 1. Purge the legacy keychain (service = com.liasica.rotor.totp)
+// 2. Delete the old SwiftData store (the new ciphertext field makes a clean rebuild simplest)
 @MainActor
 enum Migration {
     private static let defaultsKey = "rotor.migrated.keychain2file.v1"

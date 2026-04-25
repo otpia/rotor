@@ -1,8 +1,8 @@
 import CryptoKit
 import Foundation
 
-// AES-256-GCM 封装；sealed.combined 包含 nonce(12) + ciphertext + tag(16)
-// vault key 现在由 VaultManager 管理（内存持有，受主密码保护）
+// AES-256-GCM wrapper; sealed.combined contains nonce(12) + ciphertext + tag(16)
+// The vault key is now owned by VaultManager (held in memory, protected by the master password)
 @MainActor
 enum SecretVault {
     enum VaultError: Error {

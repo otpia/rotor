@@ -1,8 +1,8 @@
 import AppKit
 import SwiftUI
 
-// 从 SwiftUI ScrollView 的子视图里反查 AppKit 的 NSScrollView，
-// 用来在拖拽时实现连续、精确到像素的自动滚动
+// Walk up from a SwiftUI ScrollView descendant to find the underlying AppKit NSScrollView,
+// enabling continuous, pixel-accurate auto-scroll while dragging
 struct ScrollViewFinder: NSViewRepresentable {
     @Binding var scrollView: NSScrollView?
 

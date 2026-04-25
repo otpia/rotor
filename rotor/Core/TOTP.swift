@@ -18,7 +18,7 @@ struct TOTPGenerator: Hashable {
         self.algorithm = algorithm
     }
 
-    // RFC 6238：基于时间计数器的 HOTP
+    // RFC 6238: HOTP driven by a time-based counter
     func code(at date: Date = Date()) -> String {
         let counter = UInt64(date.timeIntervalSince1970 / period)
         var counterBE = counter.bigEndian
@@ -46,7 +46,7 @@ struct TOTPGenerator: Hashable {
         return String(format: "%0\(digits)d", value)
     }
 
-    // 返回当前周期还剩多少秒
+    // Seconds remaining in the current period
     func secondsRemaining(at date: Date = Date()) -> TimeInterval {
         let t = date.timeIntervalSince1970
         return period - t.truncatingRemainder(dividingBy: period)

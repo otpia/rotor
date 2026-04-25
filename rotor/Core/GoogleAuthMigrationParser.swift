@@ -1,11 +1,11 @@
 import Foundation
 
-// Google Authenticator 迁移格式 otpauth-migration://offline?data=<url-encoded-base64>
-// data 是 protobuf，schema 见 CLAUDE.md §4.5
+// Google Authenticator migration format: otpauth-migration://offline?data=<url-encoded-base64>
+// `data` is protobuf; schema is documented in CLAUDE.md §4.5
 struct GoogleAuthMigrationItem {
     let issuer: String?
     let label: String
-    let secret: Data            // 原始字节（未 Base32 编码）
+    let secret: Data            // raw bytes (not Base32-encoded)
     let digits: Int
     let period: TimeInterval
     let algorithm: TOTPAlgorithm
@@ -51,7 +51,7 @@ enum GoogleAuthMigrationParser {
         var issuer: String?
         var algorithm: TOTPAlgorithm = .sha1
         var digits = 6
-        var otpType = 2 // 默认 TOTP
+        var otpType = 2 // default to TOTP
 
         for f in fields {
             switch f.number {
@@ -88,10 +88,10 @@ enum GoogleAuthMigrationParser {
             }
         }
 
-        guard otpType == 2 else { return nil } // HOTP 暂不支持
+        guard otpType == 2 else { return nil } // HOTP not supported yet
         guard !secret.isEmpty else { return nil }
 
-        // GA 的 name 字段常为 "Issuer:user@example.com"，若未独立提供 issuer 就从 name 拆出
+        // GA's `name` field is often "Issuer:user@example.com"; if `issuer` isn't provided, split it out of `name`
         var label = name
         if issuer == nil, let colon = name.firstIndex(of: ":") {
             issuer = String(name[..<colon]).trimmingCharacters(in: .whitespaces)

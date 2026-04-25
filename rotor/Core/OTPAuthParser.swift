@@ -9,7 +9,7 @@ struct ParsedOTPAuth {
     let period: TimeInterval
 }
 
-// RFC 6238 otpauth:// 格式：otpauth://totp/Label?secret=...&issuer=...&algorithm=SHA1&digits=6&period=30
+// RFC 6238 otpauth:// format: otpauth://totp/Label?secret=...&issuer=...&algorithm=SHA1&digits=6&period=30
 enum OTPAuthParser {
     static func parse(_ uri: String) -> ParsedOTPAuth? {
         let trimmed = uri.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -7,7 +7,7 @@ enum FontRegistrar {
         "CourierPrime-Bold",
     ]
 
-    // 在 App 启动时调用一次；重复注册会返回 kCTFontManagerErrorAlreadyRegistered，忽略即可
+    // Call once at app launch; duplicate registration returns kCTFontManagerErrorAlreadyRegistered, which can be ignored
     static func registerBundledFonts() {
         for name in bundled {
             guard let url = Bundle.main.url(forResource: name, withExtension: "ttf") else {

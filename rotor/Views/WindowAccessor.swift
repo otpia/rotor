@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-// 拿到 SwiftUI Scene 背后的 NSWindow，用来配置 level、behavior 等 AppKit 属性
+// Reach the NSWindow backing a SwiftUI Scene to configure AppKit properties like level and behavior
 struct WindowAccessor: NSViewRepresentable {
     let callback: (NSWindow?) -> Void
 

@@ -56,7 +56,7 @@ struct AccountFormView: View {
         let issuerOK = !issuer.trimmingCharacters(in: .whitespaces).isEmpty
         let trimmed = secretBase32.trimmingCharacters(in: .whitespaces)
         if isEditing {
-            // 编辑时 secret 可留空表示不变；填了必须是合法 Base32
+            // When editing, an empty secret means "unchanged"; if provided, it must be valid Base32
             let secretOK = trimmed.isEmpty || Base32.decode(trimmed) != nil
             return issuerOK && secretOK
         } else {
@@ -175,7 +175,7 @@ struct AccountFormView: View {
         }
     }
 
-    // 手动输入和箭头共用同一 Binding；写入时 clamp 到允许范围，越界输入自动回落
+    // Manual entry and the stepper share the same Binding; writes clamp to the allowed range so out-of-range input falls back automatically
     private var digitsBinding: Binding<Int> {
         Binding(
             get: { digits },
@@ -225,7 +225,7 @@ struct AccountFormView: View {
         }
     }
 
-    // 单/多 payload 统一的中间结果
+    // Unified intermediate result for single/multi-payload extraction
     private struct ExtractedItem {
         let issuer: String?
         let label: String
@@ -242,7 +242,7 @@ struct AccountFormView: View {
             return
         }
         if items.count > 1 {
-            // 粘贴 GA migration URI 且包含多账户：直接批量入库
+            // Pasted a GA migration URI with multiple accounts: bulk-import directly
             handleBulk(items)
         } else {
             fillForm(from: items[0])
@@ -276,8 +276,8 @@ struct AccountFormView: View {
         }
     }
 
-    // 把任意数量 URI / QR payload 展开为 ExtractedItem 列表
-    // 支持 otpauth:// 单条 和 otpauth-migration:// 多条（GA 导出）
+    // Expand any number of URI / QR payloads into an ExtractedItem list
+    // Supports single otpauth:// entries and multi-account otpauth-migration:// payloads (GA export)
     private func extractItems(from payloads: [String]) -> [ExtractedItem] {
         var result: [ExtractedItem] = []
         for payload in payloads {
@@ -323,7 +323,7 @@ struct AccountFormView: View {
         algorithm = item.algorithm
     }
 
-    // 批量入库：委托给 AccountImportService（统一去重 + 进度）
+    // Bulk insert: delegate to AccountImportService (unified dedupe + progress)
     private func handleBulk(_ items: [ExtractedItem]) {
         let candidates = items.map { item in
             AccountImportService.Candidate(
@@ -351,7 +351,7 @@ struct AccountFormView: View {
                     dismiss()
                     return
                 }
-                // 全部跳过或失败，不 dismiss，给用户看原因
+                // All skipped or failed: don't dismiss, surface the reason to the user
                 if outcome.skipped > 0 && outcome.failed == 0 {
                     errorMessage = "所选二维码中的 \(outcome.skipped) 个账户已存在"
                 } else {

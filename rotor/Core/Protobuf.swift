@@ -1,6 +1,6 @@
 import Foundation
 
-// 极简 Protobuf wire format 解析器，只覆盖 GA 迁移所需的 varint / length-delimited
+// Minimal Protobuf wire-format parser, covering only the varint / length-delimited cases needed by GA migration
 enum Protobuf {
     enum Value {
         case varint(UInt64)
