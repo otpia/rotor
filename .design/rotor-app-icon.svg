@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Rotor — App Icon</title>
+  
+  <rect x="0" y="0" width="1024" height="1024" rx="225" ry="225" fill="#FAF6EE"></rect>
+  
+  <g transform="translate(144 144) scale(3.68)">
+    <path d="M 100 14 A 86 86 0 1 1 14 100" stroke="#2A6FDB" stroke-width="16" fill="none" stroke-linecap="round"></path>
+    <path d="M 100 44 A 56 56 0 0 1 156 100" stroke="#F4C430" stroke-width="16" fill="none" stroke-linecap="round"></path>
+    <circle cx="100" cy="100" r="20" fill="#E63946"></circle>
+  </g>
+</svg>

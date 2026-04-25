@@ -1,0 +1,32 @@
+# macOS
+.DS_Store
+
+# Xcode
+build/
+DerivedData/
+*.xcuserdatad/
+**/xcuserdata/
+*.xcuserstate
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Xcode user-specific schemes
+xcshareddata/WorkspaceSettings.xcsettings
+**/IDEWorkspaceChecks.plist
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+
+# 保留 Package.resolved 锁版本
+
+# Personal editor cruft
+*.swp
+*.swo
+*~
+.idea/
+.vscode/

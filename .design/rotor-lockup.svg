@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 220" width="720" height="220">
+  <title>Rotor — Horizontal Lockup</title>
+  
+  
+  <g transform="translate(30 30) scale(0.8)">
+    <path d="M 100 14 A 86 86 0 1 1 14 100" stroke="#2A6FDB" stroke-width="16" fill="none" stroke-linecap="round"></path>
+    <path d="M 100 44 A 56 56 0 0 1 156 100" stroke="#F4C430" stroke-width="16" fill="none" stroke-linecap="round"></path>
+    <circle cx="100" cy="100" r="20" fill="#E63946"></circle>
+  </g>
+  
+  <text x="220" y="150" class="wm">rotor</text>
+  
+  <circle cx="600" cy="142" r="14" fill="#E63946"></circle>
+</svg>
