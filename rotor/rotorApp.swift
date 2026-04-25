@@ -99,8 +99,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func trimMenuBar() {
         guard let mainMenu = NSApp.mainMenu else { return }
         guard let appMenuItem = mainMenu.items.first else { return }
+        // Keep the Edit menu so standard editing shortcuts (⌘A select all,
+        // ⌘C/⌘V/⌘X cut copy paste, ⌘Z undo) keep working in TextField
+        let editMenuItem = mainMenu.items.first { menuItem in
+            guard let submenu = menuItem.submenu else { return false }
+            return submenu.items.contains { $0.action == #selector(NSText.selectAll(_:)) }
+        }
         let windowMenuItem = mainMenu.items.first { $0.submenu === NSApp.windowsMenu }
-        let keep = [appMenuItem, windowMenuItem].compactMap { $0 }
+        let keep = [appMenuItem, editMenuItem, windowMenuItem].compactMap { $0 }
         // Skip removeItem if only the keep set remains, to avoid didAddItem/remove churn loops
         if mainMenu.items.count == keep.count { return }
         for item in Array(mainMenu.items) where !keep.contains(where: { $0 === item }) {
