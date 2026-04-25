@@ -11,6 +11,7 @@ struct BackupTab: View {
     @State private var importRequest: ImportRequest?
     @State private var statusMessage: String?
     @State private var importProgress: AccountImportService.Progress?
+    @State private var showingPurgeConfirm = false
 
     private struct ImportRequest: Identifiable {
         let id = UUID()
@@ -78,6 +79,24 @@ struct BackupTab: View {
                 .padding(6)
             }
 
+            GroupBox("危险操作") {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("立即删除本机所有账户。无法撤销 — 强烈建议先在上方导出 .rotor 备份。")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Button {
+                        showingPurgeConfirm = true
+                    } label: {
+                        Label("清空所有账户…", systemImage: "trash")
+                            .foregroundStyle(.red)
+                    }
+                    .disabled(accounts.isEmpty)
+                }
+                .padding(6)
+            }
+
             if let status = statusMessage {
                 Text(status)
                     .font(.system(size: 12))
@@ -87,6 +106,14 @@ struct BackupTab: View {
             Spacer(minLength: 0)
         }
         .padding(20)
+        .alert("清空所有账户?", isPresented: $showingPurgeConfirm) {
+            Button("取消", role: .cancel) {}
+            Button("清空", role: .destructive) {
+                purgeAll()
+            }
+        } message: {
+            Text("将删除全部 \(accounts.count) 个账户，此操作无法撤销。")
+        }
         .overlay {
             if let progress = importProgress {
                 ProgressOverlay(progress: progress)
@@ -143,6 +170,15 @@ struct BackupTab: View {
                 statusMessage = "导入失败：\(error.localizedDescription)"
             }
         }
+    }
+
+    private func purgeAll() {
+        let count = accounts.count
+        for account in accounts {
+            context.delete(account)
+        }
+        try? context.save()
+        statusMessage = "已清空 \(count) 个账户"
     }
 
     private func pickImportFile() {

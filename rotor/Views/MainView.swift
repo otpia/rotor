@@ -14,6 +14,12 @@ struct MainView: View {
     // Reorder mode: use List + .onMove for native drag and drop
     @State private var reorderMode: Bool = false
 
+    // Bulk select mode: tap to select / unselect, batch delete
+    @State private var selectMode: Bool = false
+    @State private var selectedIDs: Set<UUID> = []
+    @State private var showingBulkDeleteConfirm: Bool = false
+    @State private var showingPurgeAllConfirm: Bool = false
+
     private enum FormPresentation: Identifiable {
         case new
         case edit(AccountModel)
@@ -122,9 +128,33 @@ struct MainView: View {
 
             if reorderMode {
                 reorderList
+            } else if selectMode {
+                selectList
             } else {
                 normalList
             }
+        }
+        .alert(
+            "删除 \(selectedIDs.count) 个账户?",
+            isPresented: $showingBulkDeleteConfirm
+        ) {
+            Button("取消", role: .cancel) {}
+            Button("删除", role: .destructive) {
+                deleteSelected()
+            }
+        } message: {
+            Text("此操作无法撤销。建议先在「设置 → 备份」导出 .rotor 备份。")
+        }
+        .alert(
+            "清空所有账户?",
+            isPresented: $showingPurgeAllConfirm
+        ) {
+            Button("取消", role: .cancel) {}
+            Button("清空", role: .destructive) {
+                purgeAll()
+            }
+        } message: {
+            Text("将删除全部 \(accounts.count) 个账户，此操作无法撤销。建议先导出备份。")
         }
     }
 
@@ -157,6 +187,8 @@ struct MainView: View {
                 .keyboardShortcut(.defaultAction)
                 .help("完成排序")
             }
+        } else if selectMode {
+            selectModeBar
         } else {
             HStack(spacing: 12) {
                 SearchBar(text: $query)
@@ -193,6 +225,20 @@ struct MainView: View {
                 }
                 .buttonStyle(.plain)
                 .help("进入重排模式")
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        enterSelectMode()
+                    }
+                } label: {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(Color.primary.opacity(0.06)))
+                }
+                .buttonStyle(.plain)
+                .help("批量选择")
+                .disabled(accounts.isEmpty)
                 Button {
                     presenting = .new
                 } label: {
@@ -263,6 +309,126 @@ struct MainView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
         }
+    }
+
+    // MARK: - Select mode (bulk delete)
+
+    private var selectModeBar: some View {
+        let total = filtered.count
+        let selectedCount = selectedIDs.count
+        let allSelected = !filtered.isEmpty && selectedCount == total
+        return HStack(spacing: 12) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    exitSelectMode()
+                }
+            } label: {
+                Text("取消").font(.system(size: 13))
+            }
+            .buttonStyle(.plain)
+            .keyboardShortcut(.cancelAction)
+
+            Spacer()
+
+            Text(selectedCount > 0 ? "已选 \(selectedCount) 个" : "选择账户")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.primary)
+
+            Spacer()
+
+            Button {
+                if allSelected {
+                    selectedIDs.removeAll()
+                } else {
+                    selectedIDs = Set(filtered.map(\.id))
+                }
+            } label: {
+                Text(allSelected ? "取消全选" : "全选")
+                    .font(.system(size: 13))
+            }
+            .buttonStyle(.plain)
+            .disabled(filtered.isEmpty)
+
+            Button {
+                showingBulkDeleteConfirm = true
+            } label: {
+                Text("删除")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .frame(height: 30)
+                    .background(Capsule().fill(selectedIDs.isEmpty ? Color.gray.opacity(0.4) : Color.rotorDanger))
+            }
+            .buttonStyle(.plain)
+            .disabled(selectedIDs.isEmpty)
+            .help("删除选中的账户")
+        }
+    }
+
+    @ViewBuilder
+    private var selectList: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(sectioned, id: \.group) { section in
+                    if hasAnyNamedGroup {
+                        Text(section.group.isEmpty ? "未分组" : section.group)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .textCase(.uppercase)
+                            .padding(.top, section.group == sectioned.first?.group ? 0 : 8)
+                            .padding(.leading, 4)
+                    }
+                    ForEach(section.items) { account in
+                        SelectableRow(
+                            account: account,
+                            isSelected: selectedIDs.contains(account.id),
+                            onTap: { toggleSelection(account.id) }
+                        )
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 20)
+        }
+    }
+
+    private func enterSelectMode() {
+        selectedIDs.removeAll()
+        selectMode = true
+    }
+
+    private func exitSelectMode() {
+        selectMode = false
+        selectedIDs.removeAll()
+    }
+
+    private func toggleSelection(_ id: UUID) {
+        if selectedIDs.contains(id) {
+            selectedIDs.remove(id)
+        } else {
+            selectedIDs.insert(id)
+        }
+    }
+
+    private func deleteSelected() {
+        let ids = selectedIDs
+        for account in accounts where ids.contains(account.id) {
+            context.delete(account)
+        }
+        try? context.save()
+        selectedIDs.removeAll()
+        if accounts.allSatisfy({ ids.contains($0.id) }) {
+            selectMode = false
+        }
+    }
+
+    private func purgeAll() {
+        for account in accounts {
+            context.delete(account)
+        }
+        try? context.save()
+        selectedIDs.removeAll()
+        selectMode = false
     }
 
     // MARK: - Reorder mode (visfitness/Reorderable provides the GA-style feel)
