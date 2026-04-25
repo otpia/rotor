@@ -1,16 +1,18 @@
-# Rotor 发布流水线：分别为 Apple Silicon 与 Intel 各打一个 DMG
+# Rotor release pipeline: produces one DMG for Apple Silicon and one for Intel.
 #
-# 触发：
-#   - 推 tag v*.*.* 自动 build + 发 GitHub Release
-#   - workflow_dispatch 手动触发，只 build 上传 artifact 不发布
+# Triggers:
+#   - Push a tag matching v*.*.* — runs build + publishes a GitHub Release
+#   - workflow_dispatch — manual run, only uploads artifacts (no Release)
 #
-# 注意：
-#   - 项目 MACOSX_DEPLOYMENT_TARGET = 26.3，需 Xcode 26+ 的 SDK；GitHub macOS runners 跟随
-#     GitHub 镜像更新进度。若 runner 上的 Xcode SDK < 26，build 会失败，可手动改用
-#     `xcode-version: latest`，或在项目里把 deployment target 降到 15.0。
-#   - 当前 codesign 是 ad-hoc（CI 没有证书）。生成的 DMG 可分发，但首次启动会被 Gatekeeper
-#     拦下，需要右键「打开」绕过。要做 notarize 需要在 secrets 里配 APPLE_ID/TEAM_ID/
-#     DEVELOPER_ID 证书等，再加一个 notarize 步骤（后续可补）。
+# Notes:
+#   - Project MACOSX_DEPLOYMENT_TARGET = 26.3 requires Xcode 26+ SDK; depends on
+#     when GitHub publishes that runner image. If the runner Xcode SDK is < 26
+#     the build will fail; switch `xcode-version` to `latest` or temporarily lower
+#     the project deployment target to 15.0 in that case.
+#   - Codesigning is ad-hoc (no CI cert). The DMG is distributable, but Gatekeeper
+#     blocks the first launch — users must right-click "Open" once. Notarization
+#     requires Apple Developer credentials in repo secrets (APPLE_ID, TEAM_ID,
+#     Developer ID cert) plus a notarytool step (can be added later).
 
 name: Release
 
@@ -21,7 +23,7 @@ on:
   workflow_dispatch:
     inputs:
       version_override:
-        description: '版本号（可选，默认用 commit short SHA）'
+        description: 'Version override (optional, defaults to commit short SHA)'
         required: false
         type: string
 
@@ -44,7 +46,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Select latest stable Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -52,7 +54,7 @@ jobs:
           xcode-version: latest-stable
 
       - name: Cache Swift Package Manager
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
@@ -121,7 +123,7 @@ jobs:
           echo "DMG_NAME=$DMG_NAME" >> "$GITHUB_ENV"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Rotor-${{ steps.version.outputs.version }}-${{ matrix.slug }}
           path: ${{ env.DMG_NAME }}
@@ -137,7 +139,7 @@ jobs:
       contents: write
     steps:
       - name: Download all DMGs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
@@ -146,7 +148,7 @@ jobs:
         run: ls -lh dist
 
       - name: Publish Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: dist/*.dmg
           generate_release_notes: true
