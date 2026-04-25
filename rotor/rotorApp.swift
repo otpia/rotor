@@ -33,13 +33,16 @@ struct RotorApp: App {
     // (the popover's own WindowAccessor is applied directly inside PopoverView)
 
     var body: some Scene {
+        // Read settings in body so @Observable tracks them and re-evaluates
+        // when toggles change; otherwise WindowAccessor applies stale values
+        let mainLevel: NSWindow.Level = settings.mainWindowPinned ? .floating : .normal
+        let sharingType: NSWindow.SharingType = settings.screenCaptureBlocked ? .none : .readOnly
+
         // Window (not WindowGroup): single instance; openWindow(id:) re-shows it after close
         Window("Rotor", id: "main") {
             MainView()
                 .background(
-                    WindowAccessor { window in
-                        applyWindowPrefs(window, pinned: settings.mainWindowPinned)
-                    }
+                    WindowAccessor(level: mainLevel, sharingType: sharingType)
                 )
         }
         .windowStyle(.hiddenTitleBar)
@@ -53,23 +56,9 @@ struct RotorApp: App {
             SettingsView(settings: settings)
                 .modelContainer(container)
                 .background(
-                    WindowAccessor { window in
-                        applyWindowPrefs(window, level: .floating)
-                    }
+                    WindowAccessor(level: .floating, sharingType: sharingType)
                 )
         }
-    }
-
-    // Apply level + sharingType uniformly to SwiftUI-managed NSWindows
-    // Screen-capture blocking uses .none: the entire window is invisible to screen recording/screenshots
-    private func applyWindowPrefs(
-        _ window: NSWindow?,
-        pinned: Bool = false,
-        level explicitLevel: NSWindow.Level? = nil
-    ) {
-        guard let window else { return }
-        window.level = explicitLevel ?? (pinned ? .floating : .normal)
-        window.sharingType = settings.screenCaptureBlocked ? .none : .readOnly
     }
 }
 

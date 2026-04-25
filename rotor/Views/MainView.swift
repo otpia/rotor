@@ -93,7 +93,8 @@ struct MainView: View {
             case .unlocked:
                 unlockedContent
                     .onAppear {
-                        DemoSeed.seedIfEmpty(context: context)
+                        // Clean up legacy demo-seeded accounts on first launch after upgrade
+                        Migration.cleanupDemoSeedIfNeeded(context: context)
                     }
             }
         }

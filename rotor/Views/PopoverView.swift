@@ -101,10 +101,10 @@ struct PopoverView: View {
         .frame(width: 340, height: 520)
         .background(Color.rotorBackground)
         .background(
-            WindowAccessor { window in
-                window?.level = settings.popoverPinned ? .floating : .normal
-                window?.sharingType = settings.screenCaptureBlocked ? .none : .readOnly
-            }
+            WindowAccessor(
+                level: settings.popoverPinned ? .floating : .normal,
+                sharingType: settings.screenCaptureBlocked ? .none : .readOnly
+            )
         )
         // The status bar right-click menu's "Show main window" item and a second Dock click both post this notification
         .onReceive(NotificationCenter.default.publisher(for: .rotorShowMainWindow)) { _ in
