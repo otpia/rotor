@@ -1,0 +1,153 @@
+# Rotor 发布流水线：分别为 Apple Silicon 与 Intel 各打一个 DMG
+#
+# 触发：
+#   - 推 tag v*.*.* 自动 build + 发 GitHub Release
+#   - workflow_dispatch 手动触发，只 build 上传 artifact 不发布
+#
+# 注意：
+#   - 项目 MACOSX_DEPLOYMENT_TARGET = 26.3，需 Xcode 26+ 的 SDK；GitHub macOS runners 跟随
+#     GitHub 镜像更新进度。若 runner 上的 Xcode SDK < 26，build 会失败，可手动改用
+#     `xcode-version: latest`，或在项目里把 deployment target 降到 15.0。
+#   - 当前 codesign 是 ad-hoc（CI 没有证书）。生成的 DMG 可分发，但首次启动会被 Gatekeeper
+#     拦下，需要右键「打开」绕过。要做 notarize 需要在 secrets 里配 APPLE_ID/TEAM_ID/
+#     DEVELOPER_ID 证书等，再加一个 notarize 步骤（后续可补）。
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version_override:
+        description: '版本号（可选，默认用 commit short SHA）'
+        required: false
+        type: string
+
+env:
+  XCODE_PROJECT: rotor.xcodeproj
+  XCODE_SCHEME: rotor
+
+jobs:
+  build:
+    name: Build (${{ matrix.slug }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            slug: apple-silicon
+          - arch: x86_64
+            slug: intel
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select latest stable Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Cache Swift Package Manager
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+            ~/Library/Caches/org.swift.swiftpm
+          key: ${{ runner.os }}-${{ matrix.arch }}-spm-${{ hashFiles('**/Package.resolved', 'rotor.xcodeproj/project.pbxproj') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.arch }}-spm-
+
+      - name: Resolve SPM packages
+        run: |
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -resolvePackageDependencies
+
+      - name: Build ${{ matrix.arch }}
+        run: |
+          set -euxo pipefail
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -destination 'platform=macOS' \
+            -derivedDataPath build \
+            ARCHS="${{ matrix.arch }}" \
+            ONLY_ACTIVE_ARCH=NO \
+            VALID_ARCHS="${{ matrix.arch }}" \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Stage DMG layout
+        run: |
+          set -euxo pipefail
+          rm -rf dmg-staging
+          mkdir -p dmg-staging
+          cp -R build/Build/Products/Release/Rotor.app dmg-staging/Rotor.app
+          ln -s /Applications dmg-staging/Applications
+
+      - name: Compute version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          elif [[ -n "${{ inputs.version_override }}" ]]; then
+            VERSION="${{ inputs.version_override }}"
+          else
+            VERSION="dev-$(git rev-parse --short HEAD)"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: $VERSION"
+
+      - name: Create DMG
+        run: |
+          set -euxo pipefail
+          DMG_NAME="Rotor-${{ steps.version.outputs.version }}-${{ matrix.slug }}.dmg"
+          hdiutil create \
+            -volname "Rotor" \
+            -srcfolder dmg-staging \
+            -ov \
+            -format UDZO \
+            -fs HFS+ \
+            "$DMG_NAME"
+          ls -lh "$DMG_NAME"
+          echo "DMG_NAME=$DMG_NAME" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rotor-${{ steps.version.outputs.version }}-${{ matrix.slug }}
+          path: ${{ env.DMG_NAME }}
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all DMGs
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -lh dist
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.dmg
+          generate_release_notes: true
+          fail_on_unmatched_files: true
