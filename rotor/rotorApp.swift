@@ -82,18 +82,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                        name: NSApplication.didBecomeActiveNotification, object: nil)
         nc.addObserver(self, selector: #selector(onMenuMightChange),
                        name: NSWindow.didBecomeMainNotification, object: nil)
-        nc.addObserver(self, selector: #selector(onMenuMightChange),
+        nc.addObserver(self, selector: #selector(onWindowWillClose(_:)),
                        name: NSWindow.willCloseNotification, object: nil)
         if let mainMenu = NSApp.mainMenu {
             nc.addObserver(self, selector: #selector(onMenuMightChange),
                            name: NSMenu.didAddItemNotification, object: mainMenu)
         }
+        // Switch back to regular (Dock + ⌘Tab) whenever the main window is being shown
+        nc.addObserver(self, selector: #selector(onShowMainWindow),
+                       name: .rotorShowMainWindow, object: nil)
         DispatchQueue.main.async { [weak self] in self?.trimMenuBar() }
     }
 
     @objc private func onMenuMightChange() {
         // Defer to the next runloop tick so SwiftUI finishes attaching before we trim
         DispatchQueue.main.async { [weak self] in self?.trimMenuBar() }
+    }
+
+    @objc private func onWindowWillClose(_ note: Notification) {
+        onMenuMightChange()
+        guard let closing = note.object as? NSWindow else { return }
+        // Scope to the main scene: SwiftUI sets the NSWindow title to the Scene title.
+        // Panels (popover host, status item) are excluded; Settings has its own title.
+        guard !(closing is NSPanel), closing.title == "Rotor" else { return }
+        DispatchQueue.main.async { [weak self] in self?.demoteToAccessory(except: closing) }
+    }
+
+    @objc private func onShowMainWindow() {
+        // Must be regular before openWindow / activate, otherwise the window
+        // may not key in front and the Dock icon stays hidden
+        NSApp.setActivationPolicy(.regular)
+    }
+
+    private func demoteToAccessory(except closing: NSWindow) {
+        // If the user still has another standard window open (e.g. Settings),
+        // keep regular. Otherwise become an accessory app: no Dock, no ⌘Tab.
+        let hasOther = NSApp.windows.contains { window in
+            guard window !== closing else { return false }
+            guard window.isVisible, !(window is NSPanel) else { return false }
+            return window.styleMask.contains(.titled)
+        }
+        guard !hasOther else { return }
+        NSApp.setActivationPolicy(.accessory)
+        // setActivationPolicy doesn't immediately refresh the ⌘Tab list while
+        // the app is still the active app. Forcing a hide deactivates us so
+        // AppKit republishes the new policy and we drop out of the switcher.
+        NSApp.hide(nil)
     }
 
     private func trimMenuBar() {

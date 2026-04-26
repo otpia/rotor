@@ -113,6 +113,9 @@ struct PopoverView: View {
     }
 
     private func showMainWindow() {
+        // Restore Dock + ⌘Tab presence before activating; if we stayed in
+        // .accessory the main window may not come to the front reliably
+        NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         openWindow(id: "main")
     }
