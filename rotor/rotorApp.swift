@@ -44,6 +44,17 @@ struct RotorApp: App {
                 .background(
                     WindowAccessor(level: mainLevel, sharingType: sharingType)
                 )
+                .sheet(item: Binding(
+                    get: { UpdateChecker.shared.pendingPrompt },
+                    set: { UpdateChecker.shared.pendingPrompt = $0 }
+                )) { release in
+                    UpdateAvailableSheet(release: release)
+                }
+                .task {
+                    if SettingsStore.shared.autoCheckUpdates {
+                        await UpdateChecker.shared.check(silent: true)
+                    }
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentMinSize)

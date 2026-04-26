@@ -104,7 +104,9 @@ struct SettingsView: View {
     }
 
     private var aboutTab: some View {
-        VStack(spacing: 12) {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+        let build   = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
+        return VStack(spacing: 10) {
             Image("MenuBarIcon")
                 .renderingMode(.template)
                 .resizable()
@@ -115,10 +117,73 @@ struct SettingsView: View {
             Text("Desktop-first 的开源 2FA 客户端")
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
-            Text("版本 1.0.0 (MVP)")
+            Text("版本 \(version) (\(build))")
                 .font(.system(size: 11))
                 .foregroundStyle(.tertiary)
+
+            Divider().padding(.horizontal, 80).padding(.vertical, 4)
+
+            UpdateStatusRow()
+
+            Toggle("启动时自动检查更新", isOn: $settings.autoCheckUpdates)
+                .controlSize(.small)
+                .padding(.top, 2)
+
+            Link("GitHub 仓库", destination: URL(string: "https://github.com/otpia/rotor")!)
+                .font(.system(size: 11))
         }
+        .padding(.vertical, 20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .sheet(item: Binding(
+            get: { UpdateChecker.shared.pendingPrompt },
+            set: { UpdateChecker.shared.pendingPrompt = $0 }
+        )) { release in
+            UpdateAvailableSheet(release: release)
+        }
+    }
+}
+
+private struct UpdateStatusRow: View {
+    @State private var checker = UpdateChecker.shared
+
+    var body: some View {
+        HStack(spacing: 8) {
+            switch checker.state {
+            case .idle:
+                Button("检查更新") { Task { await checker.check(silent: false) } }
+                    .controlSize(.small)
+            case .checking:
+                ProgressView().controlSize(.small)
+                Text("正在检查…")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            case .upToDate:
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                Text("已是最新版本")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                Button("重新检查") { Task { await checker.check(silent: false) } }
+                    .controlSize(.small)
+            case .available(let release):
+                Image(systemName: "arrow.down.circle.fill")
+                    .foregroundStyle(Color.accentColor)
+                Text("可升级到 \(release.version)")
+                    .font(.system(size: 11))
+                Button("查看") { checker.pendingPrompt = release }
+                    .controlSize(.small)
+                    .buttonStyle(.borderedProminent)
+            case .error(let msg):
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                Text(msg)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Button("重试") { Task { await checker.check(silent: false) } }
+                    .controlSize(.small)
+            }
+        }
     }
 }

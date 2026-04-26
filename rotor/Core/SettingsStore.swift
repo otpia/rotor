@@ -43,19 +43,33 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(autoLockMinutes, forKey: Keys.autoLockMinutes) }
     }
 
+    // Whether to silently check GitHub Releases for a newer version on launch
+    var autoCheckUpdates: Bool {
+        didSet { UserDefaults.standard.set(autoCheckUpdates, forKey: Keys.autoCheckUpdates) }
+    }
+
+    // The version string the user chose to skip (e.g. "1.0.5"); empty when none
+    var skippedUpdateVersion: String {
+        didSet { UserDefaults.standard.set(skippedUpdateVersion, forKey: Keys.skippedUpdateVersion) }
+    }
+
     init() {
         let d = UserDefaults.standard
         d.register(defaults: [
             Keys.screenCaptureBlocked: true,
             Keys.sortMode: AccountSortMode.manual.rawValue,
             Keys.autoLockMinutes: 5,
+            Keys.autoCheckUpdates: true,
+            Keys.skippedUpdateVersion: "",
         ])
 
-        self.mainWindowPinned      = d.bool(forKey: Keys.mainWindowPinned)
-        self.popoverPinned         = d.bool(forKey: Keys.popoverPinned)
-        self.screenCaptureBlocked  = d.bool(forKey: Keys.screenCaptureBlocked)
-        self.sortMode              = AccountSortMode(rawValue: d.string(forKey: Keys.sortMode) ?? "") ?? .manual
-        self.autoLockMinutes       = d.integer(forKey: Keys.autoLockMinutes)
+        self.mainWindowPinned       = d.bool(forKey: Keys.mainWindowPinned)
+        self.popoverPinned          = d.bool(forKey: Keys.popoverPinned)
+        self.screenCaptureBlocked   = d.bool(forKey: Keys.screenCaptureBlocked)
+        self.sortMode               = AccountSortMode(rawValue: d.string(forKey: Keys.sortMode) ?? "") ?? .manual
+        self.autoLockMinutes        = d.integer(forKey: Keys.autoLockMinutes)
+        self.autoCheckUpdates       = d.bool(forKey: Keys.autoCheckUpdates)
+        self.skippedUpdateVersion   = d.string(forKey: Keys.skippedUpdateVersion) ?? ""
     }
 
     private enum Keys {
@@ -64,5 +78,7 @@ final class SettingsStore {
         static let screenCaptureBlocked  = "rotor.screenCaptureBlocked"
         static let sortMode              = "rotor.sortMode"
         static let autoLockMinutes       = "rotor.autoLockMinutes"
+        static let autoCheckUpdates      = "rotor.autoCheckUpdates"
+        static let skippedUpdateVersion  = "rotor.skippedUpdateVersion"
     }
 }
