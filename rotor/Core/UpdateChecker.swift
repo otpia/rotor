@@ -112,17 +112,36 @@ final class UpdateChecker {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let api = try decoder.decode(APIRelease.self, from: data)
-        let dmg = api.assets.first(where: { $0.name.lowercased().hasSuffix(".dmg") })
+        let dmg = pickDMG(from: api.assets)
         return Release(
             tag: api.tag_name,
             version: api.tag_name.hasPrefix("v") ? String(api.tag_name.dropFirst()) : api.tag_name,
             name: api.name ?? api.tag_name,
             body: api.body ?? "",
             publishedAt: api.published_at,
-            dmgURL: dmg.flatMap { URL(string: $0.browser_download_url) },
+            dmgURL: dmg,
             htmlURL: URL(string: api.html_url) ?? URL(string: "https://github.com/\(owner)/\(repo)/releases/latest")!
         )
     }
+
+    // Match the DMG that fits this Mac's CPU. Falls back to any DMG when the
+    // release didn't include arch-tagged assets (older v1.0.x naming).
+    private func pickDMG(from assets: [APIAsset]) -> URL? {
+        let arch = Self.machineArch
+        let dmgs = assets.filter { $0.name.lowercased().hasSuffix(".dmg") }
+        let preferred = dmgs.first { $0.name.lowercased().contains(arch) }
+        let fallback = dmgs.first { !$0.name.lowercased().contains("x86_64") } ?? dmgs.first
+        let chosen = preferred ?? fallback
+        return chosen.flatMap { URL(string: $0.browser_download_url) }
+    }
+
+    // "arm64" on Apple Silicon (regardless of Rosetta), "x86_64" on Intel
+    private static let machineArch: String = {
+        var translated: Int32 = 0
+        var size = MemoryLayout.size(ofValue: translated)
+        let result = sysctlbyname("sysctl.proc_translated", &translated, &size, nil, 0)
+        return result == 0 ? "arm64" : "x86_64"
+    }()
 
     // Numeric semver compare; non-numeric suffixes are dropped to keep the check robust
     static func compare(_ a: String, _ b: String) -> Int {

@@ -39,9 +39,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Apple Silicon is the default target — DMG drops the arch suffix
           - arch: arm64
-            suffix: ""
+            suffix: "-arm64"
             label: apple-silicon
           - arch: x86_64
             suffix: "-x86_64"
@@ -142,6 +141,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - name: Download all DMGs
         uses: actions/download-artifact@v8
         with:
@@ -151,9 +155,41 @@ jobs:
       - name: List artifacts
         run: ls -lh dist
 
+      - name: Build changelog
+        id: cl
+        env:
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # Pick the previous semver tag (skip the current one); fall back to the
+          # first commit so initial releases still get a complete log
+          PREV=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -v -x "$TAG" | head -n 1 || true)
+          if [ -z "$PREV" ]; then
+            PREV=$(git rev-list --max-parents=0 HEAD)
+            COMPARE_LINK="https://github.com/$REPO/commits/$TAG"
+          else
+            COMPARE_LINK="https://github.com/$REPO/compare/$PREV...$TAG"
+          fi
+
+          {
+            echo "## Summary"
+            echo
+            # Group by Conventional Commits prefix; output bullets verbatim so users
+            # see the same prefixes the project uses internally
+            git log --no-merges --pretty=format:'%s' "$PREV..$TAG" \
+              | grep -E '^(feat|fix|perf|refactor|docs|build|ci|chore|style|test|revert)(\([^)]*\))?:' \
+              | sed 's/^/- /' \
+              || echo "- (no notable changes)"
+            echo
+            echo
+            echo "**Full Changelog**: $COMPARE_LINK"
+          } > CHANGELOG.md
+          cat CHANGELOG.md
+
       - name: Publish Release
         uses: softprops/action-gh-release@v3
         with:
           files: dist/*.dmg
-          generate_release_notes: true
+          body_path: CHANGELOG.md
           fail_on_unmatched_files: true
